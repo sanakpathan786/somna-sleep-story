@@ -10,4 +10,5 @@
 <!-- LOVABLE:END -->
 
 - Keep the seven-day sleep log in the shared Somna parent state and calculate metrics through `src/lib/sleep-log.ts` so floor navigation cannot reset or diverge the log.
+- Keep Floor 2 presentation in `src/components/lifestyle-floor.tsx` and lifestyle values in the shared Somna provider using `src/lib/lifestyle-log.ts`; every floor can read the same values without resetting them on navigation, and Care Summary presentation stays independently scoped.
 - Keep Floor 1 local-calendar arithmetic and date-keyed read-only sample history in `src/lib/sleep-weeks.ts`; rolling seven-day windows end Today and the Today editor writes to the shared final-night entry so Week/Day navigation agrees without altering Floor 4 or resetting current data. Read the device clock after hydration and refresh on focus and calendar rollover to avoid server-time mismatches.
