@@ -10,4 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Keep the seven-day sleep log in the shared Somna parent state and calculate metrics through `src/lib/sleep-log.ts` so floor navigation cannot reset or diverge the log.
-- Keep Floor 1 display dates and read-only sample history in `src/lib/sleep-weeks.ts`; its Today editor writes to the shared final-night entry so date navigation cannot alter Floor 4 or reset current data.
+- Keep Floor 1 local-calendar arithmetic and date-keyed read-only sample history in `src/lib/sleep-weeks.ts`; rolling seven-day windows end Today and the Today editor writes to the shared final-night entry so Week/Day navigation agrees without altering Floor 4 or resetting current data. Read the device clock after hydration and refresh on focus and calendar rollover to avoid server-time mismatches.
