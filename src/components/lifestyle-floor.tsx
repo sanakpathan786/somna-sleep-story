@@ -21,7 +21,7 @@ function FactorCounter({ label, value, onChange, min = 0 }: { label: string; val
 }
 
 function FactorRange({ label, value, min, max, display, onChange }: { label: string; value: number; min: number; max: number; display: string; onChange: (value: number) => void }) {
-  return <div className="mb-5"><div className="mb-3 flex items-start justify-between gap-3 text-sm"><span>{label}</span><output className="shrink-0 font-semibold text-primary" aria-live="polite">{display}</output></div><Slider aria-label={label} value={[value]} min={min} max={max} step={1} onValueChange={values => { const next = values[0]; if (next !== undefined) onChange(next); }} className="py-2 [&_[role=slider]]:bg-primary [&_[role=slider]]:glow" /></div>;
+  return <div className="mb-5"><div className="mb-3 flex items-start justify-between gap-3 text-sm"><span>{label}</span><output className="shrink-0 font-semibold text-primary" aria-live="polite">{display}</output></div><Slider thumbLabel={label} value={[value]} min={min} max={max} step={1} onValueChange={values => { const next = values[0]; if (next !== undefined) onChange(next); }} className="py-2 [&_[role=slider]]:bg-primary [&_[role=slider]]:glow" /></div>;
 }
 
 function FactorSelect<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: readonly T[]; onChange: (value: T) => void }) {
