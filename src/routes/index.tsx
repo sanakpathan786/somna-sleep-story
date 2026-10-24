@@ -276,7 +276,7 @@ const RANGES: Record<string, { lat: number; aw: number; tst: number; n: number }
 
 function Floor4() {
   const [range, setRange] = useState("Past 7 Days");
-  const r = RANGES[range];
+  const r = RANGES[range]!;
   return (
     <>
       <div className="no-print mb-4">
