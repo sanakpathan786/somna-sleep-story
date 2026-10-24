@@ -142,7 +142,7 @@ function Card({ title, children }: { title?: string; children: React.ReactNode }
   );
 }
 
-function Slider({ label, value, set, min, max, display }: { label: string; value: number; set: (n: number) => void; min: number; max: number; display?: string }) {
+function Slider({ label, value, set, min, max, display }: { label: string; value: number; set: (n: number) => void; min: number; max: number; display?: string | undefined }) {
   return (
     <label className="block mb-4">
       <div className="flex justify-between text-sm mb-1"><span>{label}</span><span className="text-primary font-semibold">{display ?? value}</span></div>
