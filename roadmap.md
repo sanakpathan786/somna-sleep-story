@@ -3,3 +3,5 @@
 - [x] Verify every floor scrolls clear of the dock.
 - [x] Add Floor 1-only dated week navigation, historical averages, and reactive Today logging; verify navigation and edits.
 - [x] Replace Floor 1 fixed dates with local rolling Week/Day navigation and test date boundaries and live synchronization.
+- [ ] Update only Floor 2 with clinical lifestyle controls and shared values available for Care Summary.
+- [ ] Test nap thresholds, medication selection, control ranges, and navigation preservation; verify Floor 2 above the dock.
