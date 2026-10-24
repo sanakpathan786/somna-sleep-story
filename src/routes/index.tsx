@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Floor2 } from "@/components/lifestyle-floor";
+import { INITIAL_LIFESTYLE, LifestyleContext, addCustomMedication, type LifestyleLog } from "@/lib/lifestyle-log";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { INITIAL_WEEK, averageSleep, nightMetrics, type SleepNight } from "@/lib/sleep-log";
 import { DAY_WINDOW, dateKey, fullDate, moveSleepDay, moveSleepWeek, selectedSleepDay, selectedSleepWeek, sleepDayDate, sleepWeekDates } from "@/lib/sleep-weeks";
@@ -32,6 +34,7 @@ type Phase = "closed" | "opening" | "done";
 function Somna() {
   const [floor, setFloor] = useState(0); // 0 = lobby
   const [week, setWeek] = useState<SleepNight[]>(INITIAL_WEEK);
+  const [lifestyle, setLifestyle] = useState<LifestyleLog>(INITIAL_LIFESTYLE);
   const updateSunday = (patch: Partial<Omit<SleepNight, "day">>) => {
     setWeek(previous => previous.map(night => night.day === "Sunday" ? { ...night, ...patch } : night));
   };
@@ -45,6 +48,7 @@ function Somna() {
   const current = FLOORS.find((f) => f.n === floor);
 
   return (
+    <LifestyleContext.Provider value={{ log: lifestyle, update: patch => setLifestyle(previous => ({ ...previous, ...patch })), addCustom: name => setLifestyle(previous => addCustomMedication(previous, name)) }}>
     <div className="min-h-screen bg-background sm:py-6">
       <div className="print-shell relative mx-auto max-w-md min-h-screen sm:min-h-[calc(100vh-3rem)] sm:rounded-[2rem] sm:border bg-background overflow-hidden">
         {phase !== "done" && <Doors phase={phase} skip={() => setPhase("done")} />}
@@ -72,6 +76,7 @@ function Somna() {
         )}
       </div>
     </div>
+    </LifestyleContext.Provider>
   );
 }
 
@@ -296,49 +301,6 @@ function Floor1({ week, updateSunday }: { week: SleepNight[]; updateSunday: (pat
         <Slider label="Morning energy level" value={energy} set={setEnergy} min={1} max={10} />
         <Slider label="Daytime fatigue / brain fog" value={fog} set={setFog} min={0} max={3} display={fogLabels[fog]} />
         <Check label="Experienced morning headaches or dry mouth" checked={head} set={setHead} />
-      </Card>
-    </>
-  );
-}
-
-function Floor2() {
-  const [cups, setCups] = useState(3);
-  const [cut, setCut] = useState("14:00");
-  const [alc, setAlc] = useState(false);
-  const [alcTime, setAlcTime] = useState("Evening (6–9 PM)");
-  const [screen, setScreen] = useState(75);
-  const [anx, setAnx] = useState(7);
-  const [snore, setSnore] = useState(true);
-  return (
-    <>
-      <Card title="Caffeine">
-        <Counter label="Cups today" value={cups} set={setCups} />
-        <label className="text-sm">Cut-off time of last cup
-          <select value={cut} onChange={(e) => setCut(e.target.value)} className={inputCls + " mt-1"}>
-            {["10:00", "12:00", "14:00", "16:00", "18:00", "20:00"].map((t) => <option key={t}>{t}</option>)}
-          </select>
-        </label>
-        {+cut.slice(0, 2) >= 14 && <p className="text-xs text-primary mt-2">Caffeine after 2 PM may delay sleep onset.</p>}
-      </Card>
-      <Card title="Alcohol">
-        <div className="flex gap-2 mb-3">
-          {[true, false].map((v) => (
-            <button key={String(v)} onClick={() => setAlc(v)} className={`flex-1 py-2 rounded-lg border ${alc === v ? "bg-primary text-primary-foreground border-primary" : "bg-secondary"}`}>{v ? "Yes" : "No"}</button>
-          ))}
-        </div>
-        {alc && (
-          <select value={alcTime} onChange={(e) => setAlcTime(e.target.value)} className={inputCls}>
-            {["Afternoon", "Evening (6–9 PM)", "Within 2h of bed"].map((t) => <option key={t}>{t}</option>)}
-          </select>
-        )}
-      </Card>
-      <Card title="Evening wind-down">
-        <Slider label="Screen time before bed" value={screen} set={setScreen} min={0} max={120} display={screen >= 120 ? "120+ min" : `${screen} min`} />
-        <Slider label="Racing mind / bedtime anxiety" value={anx} set={setAnx} min={1} max={10} />
-      </Card>
-      <Card title="Apnea risk">
-        <Check label="Loud snoring or waking up gasping" checked={snore} set={setSnore} />
-        {snore && <p className="text-xs text-primary mt-2">Flagged for your physician's review.</p>}
       </Card>
     </>
   );
