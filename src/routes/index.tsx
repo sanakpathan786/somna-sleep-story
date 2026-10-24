@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { INITIAL_WEEK, averageSleep, nightMetrics, type SleepNight } from "@/lib/sleep-log";
-import { SLEEP_WEEKS, moveSleepWeek, selectedSleepWeek } from "@/lib/sleep-weeks";
+import { DAY_WINDOW, dateKey, fullDate, moveSleepDay, moveSleepWeek, selectedSleepDay, selectedSleepWeek, sleepDayDate, sleepWeekDates } from "@/lib/sleep-weeks";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -183,49 +183,48 @@ function Check({ label, checked, set }: { label: string; checked: boolean; set: 
 
 const inputCls = "w-full rounded-lg bg-field border border-input px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60";
 
-function WeeklyDuration({ week, offset, changeWeek }: { week: SleepNight[]; offset: number; changeWeek: (offset: number) => void }) {
+function SleepDuration({ nights, dates, today, label, mode, offset, navigate }: {
+  nights: SleepNight[]; dates: Date[]; today: Date; label: string; mode: "week" | "day"; offset: number; navigate: (direction: -1 | 1) => void;
+}) {
   const [selected, setSelected] = useState<number | null>(null);
-  const display = SLEEP_WEEKS[offset] ?? SLEEP_WEEKS[0];
-  const metrics = week.map(nightMetrics);
+  const metrics = nights.map(nightMetrics);
   const ceiling = Math.max(10, ...metrics.map(night => night.total));
-  const activeNight = selected === null ? undefined : week[selected];
   const active = selected === null ? undefined : metrics[selected];
+  const activeDate = selected === null ? undefined : dates[selected];
   return (
-    <Card title="Weekly sleep duration">
+    <Card title={mode === "week" ? "Weekly sleep duration" : "Daily sleep duration"}>
       <div className="flex items-center justify-between gap-1">
-        <Button variant="ghost" size="icon" aria-label="Previous week" title="Previous week" disabled={offset === SLEEP_WEEKS.length - 1}
-          onClick={() => changeWeek(moveSleepWeek(offset, 1))} className="shrink-0 text-primary">
-          <ChevronLeft className="size-5" />
-        </Button>
-        <h3 aria-live="polite" className="min-w-0 text-center text-xs font-semibold text-foreground">{display.label}</h3>
-        <Button variant="ghost" size="icon" aria-label="Next week" title="Next week" disabled={offset === 0}
-          onClick={() => changeWeek(moveSleepWeek(offset, -1))} className="shrink-0 text-primary">
-          <ChevronRight className="size-5" />
-        </Button>
+        <Button variant="ghost" size="icon" aria-label={`Previous ${mode}`} title={`Previous ${mode}`} disabled={mode === "day" && offset === DAY_WINDOW - 1}
+          onClick={() => navigate(1)} className="shrink-0 text-primary"><ChevronLeft className="size-5" /></Button>
+        <h3 aria-live="polite" className="min-w-0 text-center text-xs font-semibold text-foreground">{label}</h3>
+        <Button variant="ghost" size="icon" aria-label={`Next ${mode}`} title={`Next ${mode}`} disabled={offset === 0}
+          onClick={() => navigate(-1)} className="shrink-0 text-primary"><ChevronRight className="size-5" /></Button>
       </div>
       <div className="relative pt-16">
         <div className="absolute inset-x-0 top-16 h-40 flex flex-col justify-between pointer-events-none" aria-hidden="true">
           {[ceiling, ceiling / 2, 0].map(hours => <div key={hours} className="border-t border-border/70"><span className="absolute right-0 text-[9px] text-muted-foreground bg-card pl-1">{hours.toFixed(0)}h</span></div>)}
         </div>
-        {activeNight && active && selected !== null && (
+        {active && activeDate && selected !== null && (
           <div role="status" className="absolute z-10 w-[220px] max-w-full rounded-lg border border-primary/60 bg-popover px-3 py-2 text-center text-xs text-popover-foreground pointer-events-none transition-[bottom] duration-300 motion-reduce:transition-none"
-            style={{ left: `clamp(0px, calc(${(selected + 0.5) / 7 * 100}% - 110px), calc(100% - 220px))`, bottom: `${48 + active.total / ceiling * 160 + 8}px` }}>
-            {activeNight.day}, {display.dates[selected]} • {Math.floor(active.sleepMinutes / 60)}h {active.sleepMinutes % 60}m sleep • {active.wakes} wakes • {active.latency}m latency
+            style={{ left: `clamp(0px, calc(${(selected + 0.5) / nights.length * 100}% - 110px), calc(100% - 220px))`, bottom: `${48 + active.total / ceiling * 160 + 8}px` }}>
+            {fullDate(activeDate)} • {Math.floor(active.sleepMinutes / 60)}h {active.sleepMinutes % 60}m sleep • {active.wakes} wakes • {active.latency}m latency
           </div>
         )}
-        <div className="relative grid grid-cols-7 gap-2 pr-5">
-          {week.map((night, index) => {
+        <div className={`relative grid gap-2 pr-5 ${mode === "week" ? "grid-cols-7" : "grid-cols-1"}`}>
+          {nights.map((night, index) => {
             const metric = metrics[index];
-            if (!metric) return null;
+            const date = dates[index];
+            if (!metric || !date) return null;
+            const isToday = dateKey(date) === dateKey(today);
             return (
-              <Button key={night.day} variant="ghost" aria-label={`${night.day}, ${display.dates[index]} sleep duration${offset === 0 && index === 6 ? ", Today" : ""}`} aria-pressed={selected === index}
+              <Button key={dateKey(date)} variant="ghost" aria-label={`${fullDate(date)} sleep duration${isToday ? ", Today" : ""}`} aria-pressed={selected === index}
                 onClick={() => setSelected(index)} className="group h-[208px] min-w-0 flex-col justify-end gap-0 p-0 bg-transparent hover:bg-transparent">
-                <span className="flex h-40 w-full items-end">
-                  <span data-sleep-bar={night.day} className={`block w-full rounded-t-md transition-[height] duration-300 ease-out motion-reduce:transition-none ${selected === index ? "bg-primary/60 ring-2 ring-primary ring-offset-2 ring-offset-card" : offset === 0 && index === 6 ? "bg-primary ring-2 ring-primary ring-offset-2 ring-offset-card" : "bg-lavender/40 group-hover:bg-lavender/60"}`}
+                <span className={`flex h-40 items-end ${mode === "week" ? "w-full" : "w-16"}`}>
+                  <span data-sleep-bar={dateKey(date)} className={`block w-full rounded-t-md transition-[height] duration-300 ease-out motion-reduce:transition-none ${selected === index || isToday ? "bg-primary/60 ring-2 ring-primary ring-offset-2 ring-offset-card" : "bg-lavender/40 group-hover:bg-lavender/60"}`}
                     style={{ height: `${metric.total / ceiling * 100}%` }} />
                 </span>
-                <span className={`flex h-12 flex-col justify-center gap-0.5 text-xs ${selected === index || offset === 0 && index === 6 ? "text-primary" : "text-muted-foreground"}`}>
-                  <span>{night.day[0]}</span><span className="text-[10px] text-muted-foreground">{display.dates[index]?.split(" ")[1]}</span>
+                <span className={`flex h-12 flex-col justify-center gap-0.5 text-xs ${selected === index || isToday ? "text-primary" : "text-muted-foreground"}`}>
+                  <span>{night.day[0]}</span><span className="text-[10px] text-muted-foreground">{date.getDate()}</span>
                 </span>
               </Button>
             );
@@ -238,20 +237,38 @@ function WeeklyDuration({ week, offset, changeWeek }: { week: SleepNight[]; offs
 
 function Floor1({ week, updateSunday }: { week: SleepNight[]; updateSunday: (patch: Partial<Omit<SleepNight, "day">>) => void }) {
   const sunday = week.find(night => night.day === "Sunday") ?? INITIAL_WEEK[6];
+  const [today, setToday] = useState<Date | null>(null);
+  const [mode, setMode] = useState<"week" | "day">("week");
   const [weekOffset, setWeekOffset] = useState(0);
+  const [dayOffset, setDayOffset] = useState(0);
   const [energy, setEnergy] = useState(4);
   const [fog, setFog] = useState(2);
   const [head, setHead] = useState(true);
+  useEffect(() => {
+    const refresh = () => {
+      const now = new Date();
+      setToday(previous => previous && dateKey(previous) === dateKey(now) ? previous : now);
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 30_000);
+    window.addEventListener("focus", refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); };
+  }, []);
   const fogLabels = ["None", "Mild", "Moderate", "Severe"];
-  if (!sunday) return null;
+  if (!sunday || !today) return null;
   const { bed, asleep, wake, wakes: aw } = sunday;
   const { latency, total, efficiency } = nightMetrics(sunday);
-  const eff = Math.round(efficiency);
-  const displayedWeek = selectedSleepWeek(week, weekOffset);
-  const avg = averageSleep(displayedWeek);
+  const displayWeek = sleepWeekDates(today, weekOffset);
+  const displayDay = sleepDayDate(today, dayOffset);
+  const displayedNights = mode === "week" ? selectedSleepWeek(week, weekOffset, today) : [selectedSleepDay(week, today, dayOffset)];
+  const avg = averageSleep(displayedNights);
   return (
     <>
-      <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">7-day averages</p>
+      <div role="group" aria-label="Sleep date view" className="mx-auto mb-4 flex w-fit rounded-full border bg-secondary p-1">
+        {(["week", "day"] as const).map(view => <Button key={view} variant="ghost" aria-pressed={mode === view} onClick={() => setMode(view)}
+          className={`h-8 rounded-full px-6 text-xs ${mode === view ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" : "text-muted-foreground"}`}>{view === "week" ? "Week" : "Day"}</Button>)}
+      </div>
+      <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">{mode === "week" ? "7-day averages" : "Daily averages"}</p>
       <div className="grid grid-cols-4 gap-2 mb-4">
         {[["Latency", `${Math.round(avg.latency)}m`], ["Sleep", `${avg.total.toFixed(1)}h`], ["Wakes", avg.wakes.toFixed(1)], ["Efficiency", `${Math.round(avg.efficiency)}%`]].map(([k, v]) => (
           <div key={k} className="rounded-xl bg-card border px-1 py-3 text-center min-w-0">
@@ -259,10 +276,12 @@ function Floor1({ week, updateSunday }: { week: SleepNight[]; updateSunday: (pat
           </div>
         ))}
       </div>
-      <WeeklyDuration key={weekOffset} week={displayedWeek} offset={weekOffset} changeWeek={setWeekOffset} />
+      <SleepDuration key={`${mode}-${mode === "week" ? weekOffset : dayOffset}-${dateKey(today)}`} nights={displayedNights}
+        dates={mode === "week" ? displayWeek.dates : [displayDay.date]} today={today} label={mode === "week" ? displayWeek.label : displayDay.label}
+        mode={mode} offset={mode === "week" ? weekOffset : dayOffset} navigate={direction => mode === "week" ? setWeekOffset(moveSleepWeek(weekOffset, direction)) : setDayOffset(moveSleepDay(dayOffset, direction))} />
       <Card>
         <h2 className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] uppercase text-lavender">
-          <span>Log Sleep: Today (Saturday, Oct 24)</span>
+          <span>Log Sleep: Today ({fullDate(today)})</span>
           <span className="inline-flex items-center gap-1 text-primary"><span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />Active</span>
         </h2>
         <div className="grid grid-cols-3 gap-2 mb-2">
@@ -272,7 +291,7 @@ function Floor1({ week, updateSunday }: { week: SleepNight[]; updateSunday: (pat
             </label>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground mb-4">Latency <span className="text-primary">{latency}m</span> · Asleep <span className="text-primary">{total.toFixed(1)}h</span> · Efficiency <span className="text-primary">{eff}%</span></p>
+        <p className="text-xs text-muted-foreground mb-4">Latency <span className="text-primary">{latency}m</span> · Asleep <span className="text-primary">{total.toFixed(1)}h</span> · Efficiency <span className="text-primary">{Math.round(efficiency)}%</span></p>
         <Counter label="Middle-of-night awakenings" value={aw} set={wakes => updateSunday({ wakes })} />
         <Slider label="Morning energy level" value={energy} set={setEnergy} min={1} max={10} />
         <Slider label="Daytime fatigue / brain fog" value={fog} set={setFog} min={0} max={3} display={fogLabels[fog]} />
