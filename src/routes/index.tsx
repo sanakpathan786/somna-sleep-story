@@ -31,6 +31,7 @@ function Somna() {
   useEffect(() => {
     if (phase === "closed") { const t = setTimeout(() => setPhase("opening"), 3500); return () => clearTimeout(t); }
     if (phase === "opening") { const t = setTimeout(() => setPhase("done"), 2300); return () => clearTimeout(t); }
+    return undefined;
   }, [phase]);
 
   const current = FLOORS.find((f) => f.n === floor);
