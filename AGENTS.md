@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Keep the seven-day sleep log in the shared Somna parent state and calculate metrics through `src/lib/sleep-log.ts` so floor navigation cannot reset or diverge the log.
+- Keep Floor 1 display dates and read-only sample history in `src/lib/sleep-weeks.ts`; its Today editor writes to the shared final-night entry so date navigation cannot alter Floor 4 or reset current data.
