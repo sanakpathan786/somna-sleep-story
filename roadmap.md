@@ -1,0 +1,3 @@
+- [x] Share Monday–Sunday sleep data between Floors 1 and 4 and test calculations.
+- [x] Add selectable weekly duration bars with live Sunday updates.
+- [x] Verify every floor scrolls clear of the dock.
