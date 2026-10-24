@@ -2,4 +2,4 @@
 - [x] Add selectable weekly duration bars with live Sunday updates.
 - [x] Verify every floor scrolls clear of the dock.
 - [x] Add Floor 1-only dated week navigation, historical averages, and reactive Today logging; verify navigation and edits.
-- [ ] Replace Floor 1 fixed dates with local rolling Week/Day navigation and test date boundaries and live synchronization.
+- [x] Replace Floor 1 fixed dates with local rolling Week/Day navigation and test date boundaries and live synchronization.
