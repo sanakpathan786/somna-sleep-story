@@ -79,6 +79,8 @@
   }
   input[type="range"] { accent-color: var(--primary); }
   select option { background: var(--card); color: var(--foreground); }
+  html { scroll-padding-bottom: 128px; }
+  .floor-content { padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px)); }
 }
 
 @utility glow { box-shadow: var(--glow); }

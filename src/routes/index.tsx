@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { INITIAL_WEEK, averageSleep, nightMetrics, type SleepNight } from "@/lib/sleep-log";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,6 +29,10 @@ type Phase = "closed" | "opening" | "done";
 
 function Somna() {
   const [floor, setFloor] = useState(0); // 0 = lobby
+  const [week, setWeek] = useState<SleepNight[]>(INITIAL_WEEK);
+  const updateSunday = (patch: Partial<Omit<SleepNight, "day">>) => {
+    setWeek(previous => previous.map(night => night.day === "Sunday" ? { ...night, ...patch } : night));
+  };
   const [phase, setPhase] = useState<Phase>("closed");
   useEffect(() => {
     if (phase === "closed") { const t = setTimeout(() => setPhase("opening"), 3500); return () => clearTimeout(t); }
@@ -48,15 +54,15 @@ function Somna() {
             <header className="no-print px-5 pt-6 flex items-center justify-between">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground">Floor {floor}</p>
-                <h1 className="font-display text-xl text-foreground">{current!.name}</h1>
+                <h1 className="font-display text-xl text-foreground">{current?.name}</h1>
               </div>
               <div className="rounded-md border border-primary/40 bg-card px-3 py-1 font-mono text-primary text-glow text-lg">{floor}</div>
             </header>
-            <main key={floor} className="px-5 pt-5 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {floor === 1 && <Floor1 />}
+            <main key={floor} className="floor-content px-5 pt-5 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {floor === 1 && <Floor1 week={week} updateSunday={updateSunday} />}
               {floor === 2 && <Floor2 />}
               {floor === 3 && <Floor3 />}
-              {floor === 4 && <Floor4 />}
+              {floor === 4 && <Floor4 week={week} />}
               {floor === 5 && <Floor5 />}
             </main>
             <Dock floor={floor} go={setFloor} />
@@ -175,56 +181,77 @@ function Check({ label, checked, set }: { label: string; checked: boolean; set: 
 
 const inputCls = "w-full rounded-lg bg-field border border-input px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60";
 
-const WEEK = [
-  { d: "M", lat: 42 }, { d: "T", lat: 65 }, { d: "W", lat: 38 },
-  { d: "T", lat: 55 }, { d: "F", lat: 30 }, { d: "S", lat: 51 }, { d: "S", lat: 55 },
-];
+function WeeklyDuration({ week }: { week: SleepNight[] }) {
+  const [selected, setSelected] = useState<number | null>(null);
+  const metrics = week.map(nightMetrics);
+  const ceiling = Math.max(10, ...metrics.map(night => night.total));
+  const activeNight = selected === null ? undefined : week[selected];
+  const active = selected === null ? undefined : metrics[selected];
+  return (
+    <Card title="Weekly sleep duration">
+      <div className="relative pt-16">
+        <div className="absolute inset-x-0 top-16 h-40 flex flex-col justify-between pointer-events-none" aria-hidden="true">
+          {[ceiling, ceiling / 2, 0].map(hours => <div key={hours} className="border-t border-border/70"><span className="absolute right-0 text-[9px] text-muted-foreground bg-card pl-1">{hours.toFixed(0)}h</span></div>)}
+        </div>
+        {activeNight && active && selected !== null && (
+          <div role="status" className="absolute z-10 w-[220px] max-w-full rounded-lg border border-primary/60 bg-popover px-3 py-2 text-center text-xs text-popover-foreground pointer-events-none transition-[bottom] duration-300 motion-reduce:transition-none"
+            style={{ left: `clamp(0px, calc(${(selected + 0.5) / 7 * 100}% - 110px), calc(100% - 220px))`, bottom: `${28 + active.total / ceiling * 160 + 8}px` }}>
+            {activeNight.day}: {Math.floor(active.sleepMinutes / 60)}h {active.sleepMinutes % 60}m sleep • {active.wakes} wakes • {active.latency}m latency
+          </div>
+        )}
+        <div className="relative grid grid-cols-7 gap-2 pr-5">
+          {week.map((night, index) => {
+            const metric = metrics[index];
+            if (!metric) return null;
+            return (
+              <Button key={night.day} variant="ghost" aria-label={`${night.day} sleep duration`} aria-pressed={selected === index}
+                onClick={() => setSelected(index)} className="group h-[188px] min-w-0 flex-col justify-end gap-0 p-0 bg-transparent hover:bg-transparent">
+                <span className="flex h-40 w-full items-end">
+                  <span data-sleep-bar={night.day} className={`block w-full rounded-t-md transition-[height] duration-300 ease-out motion-reduce:transition-none ${selected === index ? "bg-primary/60 ring-2 ring-primary ring-offset-2 ring-offset-card" : index === 6 ? "bg-primary" : "bg-lavender/40 group-hover:bg-lavender/60"}`}
+                    style={{ height: `${metric.total / ceiling * 100}%` }} />
+                </span>
+                <span className={`flex h-7 items-center text-xs ${selected === index ? "text-primary" : "text-muted-foreground"}`}>{night.day[0]}</span>
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+    </Card>
+  );
+}
 
-function Floor1() {
-  const [bed, setBed] = useState("22:45");
-  const [asleep, setAsleep] = useState("23:33");
-  const [wake, setWake] = useState("06:20");
-  const [aw, setAw] = useState(2);
+function Floor1({ week, updateSunday }: { week: SleepNight[]; updateSunday: (patch: Partial<Omit<SleepNight, "day">>) => void }) {
+  const sunday = week.find(night => night.day === "Sunday") ?? INITIAL_WEEK[6];
   const [energy, setEnergy] = useState(4);
   const [fog, setFog] = useState(2);
   const [head, setHead] = useState(true);
   const fogLabels = ["None", "Mild", "Moderate", "Severe"];
-  const mins = (t: string) => { const [h, m] = t.split(":").map(Number); return (h ?? 0) * 60 + (m ?? 0); };
-  const latency = (mins(asleep) - mins(bed) + 1440) % 1440;
-  const total = ((mins(wake) - mins(asleep) + 1440) % 1440) / 60;
-  const inBed = ((mins(wake) - mins(bed) + 1440) % 1440) / 60;
-  const eff = inBed ? Math.round((total / inBed) * 100) : 0;
+  if (!sunday) return null;
+  const { bed, asleep, wake, wakes: aw } = sunday;
+  const { latency, total, efficiency } = nightMetrics(sunday);
+  const eff = Math.round(efficiency);
+  const avg = averageSleep(week);
   return (
     <>
       <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">7-day averages</p>
       <div className="grid grid-cols-4 gap-2 mb-4">
-        {[["Latency", "48m"], ["Sleep", "5.8h"], ["Wakes", "2.4"], ["Efficiency", "78%"]].map(([k, v]) => (
-          <div key={k} className="rounded-xl bg-card border p-3 text-center">
+        {[["Latency", `${Math.round(avg.latency)}m`], ["Sleep", `${avg.total.toFixed(1)}h`], ["Wakes", avg.wakes.toFixed(1)], ["Efficiency", `${Math.round(avg.efficiency)}%`]].map(([k, v]) => (
+          <div key={k} className="rounded-xl bg-card border px-1 py-3 text-center min-w-0">
             <p className="text-[10px] text-muted-foreground">{k}</p><p className="text-lg font-display text-primary">{v}</p>
           </div>
         ))}
       </div>
-      <Card title="7-day sleep latency (min)">
-        <div className="flex items-end justify-between h-28 gap-2">
-          {WEEK.map((w, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1">
-              <span className="text-[10px] text-muted-foreground">{w.lat}</span>
-              <div className={`w-full rounded-t-md ${i === 6 ? "bg-primary" : "bg-lavender/40"}`} style={{ height: `${w.lat * 1.2}px` }} />
-              <span className="text-xs text-muted-foreground">{w.d}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
+      <WeeklyDuration week={week} />
       <Card title="Last night">
         <div className="grid grid-cols-3 gap-2 mb-2">
-          {([["Into bed", bed, setBed], ["Fell asleep", asleep, setAsleep], ["Final wake", wake, setWake]] as const).map(([l, v, s]) => (
+          {([["Into bed", bed, "bed"], ["Fell asleep", asleep, "asleep"], ["Final wake", wake, "wake"]] as const).map(([l, v, field]) => (
             <label key={l} className="text-xs text-muted-foreground">{l}
-              <input type="time" value={v} onChange={(e) => s(e.target.value)} className={inputCls + " mt-1 px-2 text-sm"} />
+              <input type="time" value={v} onChange={(e) => { if (e.target.value) updateSunday({ [field]: e.target.value }); }} className={inputCls + " mt-1 min-w-0 px-1 text-xs"} />
             </label>
           ))}
         </div>
         <p className="text-xs text-muted-foreground mb-4">Latency <span className="text-primary">{latency}m</span> · Asleep <span className="text-primary">{total.toFixed(1)}h</span> · Efficiency <span className="text-primary">{eff}%</span></p>
-        <Counter label="Middle-of-night awakenings" value={aw} set={setAw} />
+        <Counter label="Middle-of-night awakenings" value={aw} set={wakes => updateSunday({ wakes })} />
         <Slider label="Morning energy level" value={energy} set={setEnergy} min={1} max={10} />
         <Slider label="Daytime fatigue / brain fog" value={fog} set={setFog} min={0} max={3} display={fogLabels[fog]} />
         <Check label="Experienced morning headaches or dry mouth" checked={head} set={setHead} />
@@ -379,9 +406,10 @@ const RANGES: Record<string, { lat: number; aw: number; tst: number; eff: number
   "Past 3 Months": { lat: 58, aw: 3.1, tst: 5.3, eff: 71, n: 90 },
 };
 
-function Floor4() {
+function Floor4({ week }: { week: SleepNight[] }) {
   const [range, setRange] = useState("Past 7 Days");
-  const r = RANGES[range]!;
+  const live = averageSleep(range === "Today" ? week.filter(night => night.day === "Sunday") : week);
+  const r = { ...(RANGES[range] ?? RANGES["Past 7 Days"]), lat: Math.round(live.latency), aw: Number(live.wakes.toFixed(1)), tst: Number(live.total.toFixed(1)), eff: Math.round(live.efficiency), n: range === "Today" ? 1 : week.length };
   return (
     <>
       <div className="no-print mb-4">
@@ -398,6 +426,7 @@ function Floor4() {
           <div className="text-right text-[11px] opacity-70">Patient: J. Doe<br />DOB: 03/14/1986</div>
         </div>
         <Section t="A. Sleep Chronology Averages">
+          {range !== "Today" && range !== "Past 7 Days" && <p className="text-[11px] opacity-70 mb-2">Sleep averages reflect the 7 available logged nights.</p>}
           <ul className="grid grid-cols-2 gap-y-1">
             <li>Sleep latency: <b>{r.lat} min</b></li>
             <li>Awakenings: <b>{r.aw}/night</b></li>
