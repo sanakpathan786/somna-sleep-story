@@ -79,7 +79,7 @@ function Card({ title, children }: { title?: string; children: React.ReactNode }
   );
 }
 
-function Slider({ label, value, set, min, max, display }: { label: string; value: number; set: (n: number) => void; min: number; max: number; display?: string }) {
+function Slider({ label, value, set, min, max, display }: { label: string; value: number; set: (n: number) => void; min: number; max: number; display?: string | undefined }) {
   return (
     <label className="block mb-4">
       <div className="flex justify-between text-sm mb-1"><span>{label}</span><span className="text-primary font-semibold">{display ?? value}</span></div>
@@ -126,7 +126,7 @@ function Floor1() {
   const [fog, setFog] = useState(2);
   const [head, setHead] = useState(true);
   const fogLabels = ["None", "Mild", "Moderate", "Severe"];
-  const mins = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  const mins = (t: string) => { const [h, m] = t.split(":").map(Number); return (h ?? 0) * 60 + (m ?? 0); };
   const latency = (mins(asleep) - mins(bed) + 1440) % 1440;
   const total = ((mins(wake) - mins(asleep) + 1440) % 1440) / 60;
   return (
@@ -158,7 +158,7 @@ function Floor1() {
         </div>
         <Counter label="Middle-of-night awakenings" value={aw} set={setAw} />
         <Slider label="Morning energy level" value={energy} set={setEnergy} min={1} max={10} />
-        <Slider label="Daytime brain fog / fatigue" value={fog} set={setFog} min={0} max={3} display={fogLabels[fog]} />
+        <Slider label="Daytime brain fog / fatigue" value={fog} set={setFog} min={0} max={3} display={fogLabels[fog] ?? ""} />
         <Check label="Did you experience morning headaches or dry mouth?" checked={head} set={setHead} />
       </Card>
     </>
@@ -216,7 +216,7 @@ function extractTags(text: string) {
   const caf = text.match(/(double espresso|espresso|coffee|latte|tea|energy drink)[^,.]*?(at \d{1,2}(:\d{2})?\s?(am|pm))?/i);
   if (caf) tags.push({ k: "Caffeine", v: caf[0].replace(/^had an? /i, "").replace(" at ", " @ ") });
   const foods = ["pasta", "chicken", "pizza", "salad", "rice", "steak", "chocolate", "cheese", "curry"].filter((f) => t.includes(f));
-  if (foods.length) tags.push({ k: "Food", v: foods.map((f) => f[0].toUpperCase() + f.slice(1)).join(" & ") });
+  if (foods.length) tags.push({ k: "Food", v: foods.map((f) => f.charAt(0).toUpperCase() + f.slice(1)).join(" & ") });
   const aid = text.match(/(\d+\s?mg)?\s?(melatonin|zolpidem|ambien|trazodone|benadryl|magnesium)/i);
   if (aid) tags.push({ k: "Sleep Aid Detected", v: aid[0].trim() });
   if (/wine|beer|whiskey|alcohol|cocktail/.test(t)) tags.push({ k: "Alcohol", v: "Detected" });
