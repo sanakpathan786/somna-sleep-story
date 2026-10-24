@@ -21,7 +21,7 @@ describe("Floor 1 week selection", () => {
       expect(nights).toBe(HISTORICAL_WEEKS[offset - 1]);
       expect(averageSleep(nights).total).not.toBe(averageSleep(INITIAL_WEEK).total);
     }
-    expect(averageSleep(selectedSleepWeek(INITIAL_WEEK, 1)).total).toBeCloseTo(2990 / 420);
+    expect(averageSleep(selectedSleepWeek(INITIAL_WEEK, 1)).total).toBeCloseTo((430 + 400 + 440 + 375 + 480 + 435 + 460) / 420);
   });
   it("keeps Today edits in the current week without changing history", () => {
     const oldHistory = averageSleep(selectedSleepWeek(INITIAL_WEEK, 1));
