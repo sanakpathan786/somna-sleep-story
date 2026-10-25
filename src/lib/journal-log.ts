@@ -54,7 +54,7 @@ export function parseJournalNote(text: string): JournalSection[] {
     const meal = MEAL_ORDER.find((m) => m.match.test(sentence));
     const at = timeLabel(sentence);
 
-    if (skipped && !meal?.match.test(sentence.replace(/skipped|skip|didn't (eat|have)|no/gi, "")) && !caf && !alc && !aid) {
+    if (skipped && !caf && !alc && !aid) {
       continue; // e.g. "Skipped breakfast." — omit the meal entirely
     }
 
