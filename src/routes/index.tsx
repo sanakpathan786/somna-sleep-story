@@ -6,6 +6,7 @@ import { INITIAL_LIFESTYLE, LifestyleContext, addCustomMedication, type Lifestyl
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { INITIAL_WEEK, averageSleep, nightMetrics, type SleepNight } from "@/lib/sleep-log";
 import { DAY_WINDOW, dateKey, fullDate, moveSleepDay, moveSleepWeek, selectedSleepDay, selectedSleepWeek, sleepDayDate, sleepWeekDates } from "@/lib/sleep-weeks";
+import { FALLBACK_NOTE, journalHeader, noteStamp, parseJournalNote, sampleNotes, type JournalNote } from "@/lib/journal-log";
 
 export const Route = createFileRoute("/")({
   head: () => ({
