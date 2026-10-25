@@ -21,6 +21,7 @@ const cap = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
 const cleanItem = (sentence: string) =>
   sentence
+    .replace(/^(?:lunch|dinner|breakfast|midnight snack|late snack|evening)\s*:\s*/i, "")
     .replace(/^(and|then|also)\s+/i, "")
     .replace(/^(had|ate|eaten|took|drank|finished|made)\s+/i, "")
     .replace(/^(a|an|some|the|cup of|glass of|a cup of|a glass of)\s+/i, "")
@@ -133,6 +134,7 @@ export function sampleNotes(now: Date): JournalNote[] {
     const pattern = patterns[at.getDay()];
     if (!pattern) throw new Error("Missing weekday journal pattern");
     at.setHours(pattern.hour, pattern.minute, 0, 0);
-    return { id: `sample-diet-${at.getFullYear()}-${at.getMonth()}-${at.getDate()}`, at, text: pattern.text, sections: parseJournalNote(pattern.text) };
+    const sections = parseJournalNote(pattern.text).map(section => ({ ...section, items: section.items.map(item => item.replace("Sleep Aid: Melatonin @", "Sleep Aid: Melatonin 3mg @").replace("Sleep Aid: Magnesium @", "Supplement: Magnesium glycinate @")) }));
+    return { id: `sample-diet-${at.getFullYear()}-${at.getMonth()}-${at.getDate()}`, at, text: pattern.text, sections };
   });
 }

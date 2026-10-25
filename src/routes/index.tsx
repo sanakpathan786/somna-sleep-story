@@ -407,7 +407,7 @@ function Floor3({ history, setHistory }: { history: JournalNote[]; setHistory: R
                   s.items.map((item, i) => (
                     <span key={`${s.title}-${i}`}
                       className={`rounded-full px-3 py-1 text-xs border ${s.title.startsWith("Triggers") ? "border-primary/60 text-primary" : "border-lavender/40 text-lavender"}`}>
-                      {s.icon} <b>{s.title === "Midnight Snack / Evening" ? "Midnight Snack / Evening" : s.title.startsWith("Triggers") ? "Triggers/Aids" : s.title}:</b> {item}
+                      {s.icon} <b>{s.title === "Midnight Snack / Evening" ? (/snack|chips|pretzels|chocolate/i.test(item) ? "Midnight Snack" : "Evening") : s.title.startsWith("Triggers") ? "Triggers/Aids" : s.title}:</b> {item}
                     </span>
                   )),
                 )}
