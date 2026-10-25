@@ -6,7 +6,8 @@ export const FALLBACK_NOTE =
 
 const CAFFEINE = /(double espresso|espresso|iced green tea|green tea|black tea|iced tea|coffee|latte|cappuccino|macchiato|matcha|energy drink|soda|cola)/i;
 const ALCOHOL = /(glass of wine|wine|beer|whiskey|whisky|vodka|alcohol|cocktail|margarita)/i;
-const AID = /(melatonin|magnesium|chamomile(?: tea)?|zolpidem|ambien|trazodone|benadryl|valerian)/i;
+const AID = /(melatonin|magnesium|chamomile(?: tea)?|zolpidem|ambien|trazodone|benadryl|valerian)/gi;
+const FOOD = /(bowl|pasta|pizza|salad|rice|steak|chicken|burger|soup|salmon|sandwich|chocolate|cheese|curry|eggs|toast|oatmeal|yogurt|fruit|snack)/i;
 const TIME = /(?:at|around)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i;
 
 const MEAL_ORDER: { title: string; icon: string; match: RegExp }[] = [
