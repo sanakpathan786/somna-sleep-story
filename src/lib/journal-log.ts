@@ -21,7 +21,9 @@ const cap = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
 const cleanItem = (sentence: string) =>
   sentence
-    .replace(/^(had|ate|eaten|took|drank|had a|a cup of|a glass of)\s+/i, "")
+    .replace(/^(and|then|also)\s+/i, "")
+    .replace(/^(had|ate|eaten|took|drank|finished|made)\s+/i, "")
+    .replace(/^(a|an|some|the|cup of|glass of|a cup of|a glass of)\s+/i, "")
     .replace(/[.!?]+$/, "")
     .trim();
 
