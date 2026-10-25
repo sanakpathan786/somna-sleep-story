@@ -54,7 +54,7 @@ export function dietarySummary(notes: JournalNote[], now: Date, nights: number, 
       if (/^Caffeine:/i.test(item)) {
         if (/^Caffeine: Cola\b/i.test(item) && !/\bcola\b/i.test(n.text)) continue;
         const m = item.match(/@\s*(\d{1,2})(?::\d{2})?\s*PM/i);
-        if (m && Number(m[1]) >= 2 && Number(m[1]) !== 12) triggers.add(`Late ${item.toLowerCase()}`);
+        if (m && Number(m[1]) >= 3 && Number(m[1]) !== 12) triggers.add(`Late ${item.toLowerCase()}`);
       }
     }
     if (/pasta|pizza|rice|heavy carbs|bread/i.test(n.text)) triggers.add("Carbohydrate-rich foods mentioned; portion size and bedtime proximity unconfirmed");
