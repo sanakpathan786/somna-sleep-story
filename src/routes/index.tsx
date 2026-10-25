@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { chooseSupportIndex, companionIntent, companionReply, type CompanionIntent } from "@/lib/midnight-companion";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Floor2 } from "@/components/lifestyle-floor";
@@ -422,100 +423,27 @@ function Floor3({ history, setHistory }: { history: JournalNote[]; setHistory: R
 
 /* ---------- Floor 5: companion ---------- */
 
-type Msg = { from: "ai" | "me"; text: string; choices?: string[]; answer?: string };
-
-const TRIVIA = [
-  { q: "Which animal can sleep standing up?", c: ["Horse", "Rabbit", "Owl"], a: "Horse", f: "Horses lock their legs so they can doze on their feet." },
-  { q: "What is a group of owls called?", c: ["A flock", "A parliament", "A choir"], a: "A parliament", f: "A parliament of owls — wise and quiet, like the night." },
-  { q: "Which planet has the longest day?", c: ["Venus", "Mars", "Jupiter"], a: "Venus", f: "One day on Venus lasts longer than its whole year." },
-  { q: "Sea otters hold what while they sleep?", c: ["Seaweed", "Hands", "Shells"], a: "Hands", f: "They hold hands so they don't drift apart. Gentle, isn't it?" },
-];
-const STORIES = [
-  "Rain begins softly over a quiet forest. Each drop finds a leaf, then a fern, then the moss below… pat, pat, pat. The pines breathe out a cool, green scent. Somewhere a stream hums under the ferns, slow and patient. You don't need to go anywhere. The rain is doing all the work, washing the day away, leaf by leaf…",
-  "The forest path is soft with fallen needles. Mist hangs low between the trees, silver in the moonlight. An owl calls once, far away, and then the woods settle into a deep, warm hush. Your footsteps slow… and slow… until you're simply standing, breathing with the trees…",
-  "A small cabin sits at the edge of the woods, its window glowing amber. Inside, a kettle cools on the stove and a blanket waits on the chair. Outside, rain taps the roof in an even rhythm, steady as a heartbeat. Everything that needs doing is done for tonight…",
-];
-const pick = <T,>(arr: T[], used: Set<string>, key: (x: T) => string) => {
-  const fresh = arr.filter((x) => !used.has(key(x)));
-  const choice = (fresh.length ? fresh : arr)[Math.floor(Math.random() * (fresh.length || arr.length))]!;
-  used.add(key(choice));
-  return choice;
-};
-const vary = (opts: string[], used: Set<string>) => pick(opts, used, (s) => s);
+type Msg = { from: "ai" | "me"; text: string; choices?: string[] };
 
 function Floor5() {
   const [msgs, setMsgs] = useState<Msg[]>([{ from: "ai", text: "Hi, I'm here. It's okay to be awake. How are you feeling right now?" }]);
   const [input, setInput] = useState("");
-  const [typing, setTyping] = useState(false);
-  const used = useRef(new Set<string>());
-  const pending = useRef<{ answer: string; fact: string } | null>(null);
+  const previousDefault = useRef<number | null>(null);
+  const previousIntent = useRef<CompanionIntent | undefined>(undefined);
+  const factIndex = useRef(0);
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [msgs, typing]);
+  useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [msgs]);
 
-  const trivia = (): Msg => {
-    const t = pick(TRIVIA, used.current, (x) => x.q);
-    pending.current = { answer: t.a, fact: t.f };
-    return { from: "ai", text: `Gentle trivia 🌙 — ${t.q}`, choices: t.c };
-  };
-  const story = (): Msg => ({ from: "ai", text: pick(STORIES, used.current, (s) => s) });
-  const breathing = (): Msg => ({ from: "ai", text: "Let's breathe together for two minutes. Breathe in through your nose for 4… hold gently for 7… and slowly out through your mouth for 8. Let your shoulders drop on the out-breath. We'll do four rounds — I'll be right here." });
-
-  const respond = (raw: string): Msg => {
-    const t = raw.toLowerCase().trim();
-    const u = used.current;
-    if (pending.current) {
-      const p = pending.current;
-      const guessed = TRIVIA.some((x) => x.c.some((c) => t.includes(c.toLowerCase())));
-      if (guessed) {
-        pending.current = null;
-        const right = t.includes(p.answer.toLowerCase());
-        return { from: "ai", text: `${right ? vary(["Yes, that's it!", "Lovely — correct.", "Exactly right."], u) : `Close — it's ${p.answer}.`} ${p.fact} Another question, or shall we rest a while?`, choices: ["Another question", "Tell me a story", "I'm getting sleepy"] };
-      }
-    }
-    if (/trivia|quiz|another question|question/.test(t)) return trivia();
-    if (/story|rain|forest|nature/.test(t)) return story();
-    if (/breath|breathing/.test(t)) return breathing();
-    if (/racing|anx|worr|panic|thoughts|overthink/.test(t))
-      return { from: "ai", text: vary([
-        "When the mind races at night, everything feels louder. You're safe right now. Try naming 3 things you can hear and 2 things you can feel — the blanket, the pillow. Would breathing together help?",
-        "Racing thoughts are tiring, and you don't have to solve any of them tonight. Picture placing each one on a leaf and letting a slow stream carry it off. Want to try a breathing exercise with me?",
-        "That restless feeling makes sense after a long day. Let's give your thoughts somewhere to rest — what's the loudest one? You can tell me, and we'll set it down until morning.",
-      ], u), choices: ["2-min breathing", "Tell me a story"] };
-    if (/^(hi|hey|hello|hiya|yo)\b|how are (u|you)|good (evening|night)/.test(t))
-      return { from: "ai", text: vary([
-        "I'm right here with you. The world is quiet right now. How are you feeling?",
-        "Hello, night owl. It's peaceful here — no rush at all. What's keeping you company tonight?",
-        "Hi there. I'm glad you reached out. How is your body feeling right now — tense, tired, restless?",
-      ], u) };
-    if (/^(yes|yeah|yep|sure|ok|okay|please|alright)\b/.test(t))
-      return { from: "ai", text: "Lovely. What feels right for you right now?", choices: ["2-min breathing", "Peaceful trivia", "A nature story"] };
-    if (/^(no|nah|not really)\b/.test(t))
-      return { from: "ai", text: vary(["That's completely okay. We can just sit quietly together. I'm here whenever you want to talk.", "No pressure at all. Sometimes just resting your eyes is enough."], u) };
-    if (/sleepy|tired|drowsy|yawn/.test(t))
-      return { from: "ai", text: vary(["That's a wonderful sign. Let your phone rest face-down and let your eyes close. Goodnight 🌙", "Follow that heaviness — it's your body saying yes. Sleep well."], u) };
-    if (/can'?t sleep|awake|insomnia|still up/.test(t))
-      return { from: "ai", text: vary([
-        "Lying awake can feel so lonely. If it's been more than 20 minutes, it's okay to get up, keep lights dim, and do something calm until sleepiness returns.",
-        "You're not doing anything wrong by being awake. Let's take the pressure off sleep itself — just rest is enough for now.",
-      ], u), choices: ["2-min breathing", "Peaceful trivia"] };
-    if (/thank/.test(t)) return { from: "ai", text: vary(["Always. I'm here any hour.", "You're very welcome. Be gentle with yourself tonight."], u) };
-    const snippet = raw.length > 50 ? raw.slice(0, 50) + "…" : raw;
-    return { from: "ai", text: vary([
-      `Thank you for telling me that — "${snippet}". That sounds like a lot to carry at this hour. What feels heaviest about it?`,
-      "I hear you. You don't need to fix anything right now; just noticing how you feel is enough. Would you like to keep talking, or try something calming?",
-      "That makes sense. Let's take one slow breath together before anything else… In… and out. What would feel most comforting right now?",
-      "I'm listening. Whatever you're feeling is valid. If it helps, try relaxing your jaw and letting your shoulders soften as you tell me more.",
-    ], u) };
-  };
-
-  const send = (text: string) => {
-    if (!text.trim()) return;
-    setMsgs((m) => [...m, { from: "me", text }]);
+  const send = (raw: string) => {
+    const text = raw.trim();
+    if (!text) return;
+    const intent = companionIntent(text, previousIntent.current);
+    if (intent === "support") previousDefault.current = chooseSupportIndex(previousDefault.current);
+    const reply = companionReply(intent, previousDefault.current ?? 0, factIndex.current);
+    if (intent === "fact") factIndex.current += 1;
+    previousIntent.current = intent;
+    setMsgs(previous => [...previous, { from: "me", text }, { from: "ai", ...reply }]);
     setInput("");
-    setTyping(true);
-    const t = text.toLowerCase();
-    const out = /calming trivia|peaceful trivia/.test(t) ? trivia() : /sleepy story|nature story/.test(t) ? story() : /2-min breathing/.test(t) ? breathing() : respond(text);
-    setTimeout(() => { setTyping(false); setMsgs((m) => [...m, out]); }, 700 + Math.random() * 600);
   };
 
   return (
@@ -525,28 +453,27 @@ function Floor5() {
       </div>
       <div className="flex flex-wrap gap-2 mb-4">
         {["My mind is racing", "Play a calming trivia quiz", "Tell me a sleepy story"].map((q) => (
-          <button key={q} onClick={() => send(q)} className="rounded-full bg-card border px-3 py-2 text-xs text-lavender hover:border-primary/60 hover:text-primary">{q}</button>
+          <Button key={q} variant="outline" onClick={() => send(q)} className="h-auto whitespace-normal rounded-full bg-card border px-3 py-2 text-xs text-lavender hover:border-primary/60 hover:text-primary">{q}</Button>
         ))}
       </div>
-      <div className="rounded-2xl bg-card border p-4 h-[48vh] overflow-y-auto space-y-3">
+      <div role="log" aria-label="Midnight Companion conversation" aria-live="polite" className="rounded-2xl bg-card border p-4 h-[48vh] overflow-y-auto space-y-3">
         {msgs.map((m, i) => (
           <div key={i} className={`flex flex-col ${m.from === "me" ? "items-end" : "items-start"}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed ${m.from === "me" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{m.text}</div>
+            <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed break-words ${m.from === "me" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{m.text}</div>
             {m.choices && i === msgs.length - 1 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {m.choices.map((c) => (
-                  <button key={c} onClick={() => send(c)} className="rounded-full border border-lavender/40 px-3 py-1 text-xs text-lavender hover:border-primary hover:text-primary">{c}</button>
+                  <Button key={c} variant="outline" onClick={() => send(c)} className="h-auto whitespace-normal rounded-full border border-lavender/40 px-3 py-1 text-xs text-lavender hover:border-primary hover:text-primary">{c}</Button>
                 ))}
               </div>
             )}
           </div>
         ))}
-        {typing && <div className="text-xs text-muted-foreground animate-pulse">Somna is typing…</div>}
         <div ref={end} />
       </div>
       <form onSubmit={(e) => { e.preventDefault(); send(input); }} className="flex gap-2 mt-3">
-        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type softly…" className={inputCls} />
-        <button className="px-5 rounded-lg bg-primary text-primary-foreground font-semibold">Send</button>
+        <input value={input} onChange={(e) => setInput(e.target.value)} aria-label="Message Midnight Companion" placeholder="Type softly…" className={inputCls + " min-w-0"} />
+        <Button type="submit" disabled={!input.trim()} className="h-auto px-5 rounded-lg bg-primary text-primary-foreground font-semibold">Send</Button>
       </form>
     </>
   );

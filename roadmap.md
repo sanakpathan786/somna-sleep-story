@@ -9,3 +9,4 @@
 - [x] Test meal/trigger parsing, stamps, and samples; verify Floor 3 save flow and dock clearance in the browser.
 - [x] Update only Floor 4 with timeframe reports, live Today sleep and dietary notes, Section E, and paper printing; test profiles and verify navigation/export.
 - [x] Populate seven-day dietary history and aggregate Section E from shared notes with two supplement nights; verify saving, navigation, and weekly totals.
+- [x] Update only Floor 5 with contextual calming replies, nonrepeating defaults, and immediate suggestion experiences; test and verify chat.
