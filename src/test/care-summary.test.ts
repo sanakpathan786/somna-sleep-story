@@ -1,10 +1,35 @@
 import { describe, expect, it } from "vitest";
 import { dietarySummary, reportProfile } from "../lib/care-summary";
-import { parseJournalNote, type JournalNote } from "../lib/journal-log";
+import { parseJournalNote, sampleNotes, type JournalNote } from "../lib/journal-log";
 import { INITIAL_WEEK } from "../lib/sleep-log";
 
 const today = { ...INITIAL_WEEK[6], day: "Sunday", bed: "22:00", asleep: "23:00", wake: "07:00", wakes: 4 };
 describe("Care Summary timeframe rules", () => {
+  const now = new Date(2026, 9, 25, 12);
+  const weekly = () => dietarySummary(sampleNotes(now), now, 7, "22:25");
+  it("averages six recorded dinner times to 7:25 PM", () => {
+    expect(weekly().dinnerClock).toBe("7:25 PM");
+    expect(weekly().dinnerTimeCount).toBe(6);
+    expect(weekly().recordedNights).toBe(7);
+  });
+  it("counts food snacks only on Tuesday and Friday", () => {
+    expect(weekly().snackNights).toBe(2);
+    expect(weekly().snackDays).toEqual(["Tuesday", "Friday"]);
+  });
+  it("flags Tuesday late energy drink and Friday evening wine", () => {
+    expect(weekly().flaggedNights).toBe(2);
+    expect(weekly().flaggedDays).toEqual(["Tuesday", "Friday"]);
+  });
+  it("counts the confirmed two magnesium or melatonin nights, not herbal tea", () => {
+    expect(weekly().supplementNights).toBe(2);
+  });
+  it("updates weekly counts from saved notes without double counting a date", () => {
+    const text = "Midnight snack: Chips at 11 PM. Melatonin at 10 PM.";
+    const note = { id: "saved", at: new Date(2026, 9, 24, 23), text, sections: parseJournalNote(text) };
+    const result = dietarySummary([...sampleNotes(now), note, { ...note, id: "duplicate" }], now, 7, "22:25");
+    expect(result.snackNights).toBe(3);
+    expect(result.supplementNights).toBe(3);
+  });
   it("uses today's live sleep inputs", () => {
     expect(reportProfile("Today (1 Night)", today)).toMatchObject({ nights: 1, total: 8, latency: 60, wakes: 4, efficiency: 480 / 540 * 100 });
   });

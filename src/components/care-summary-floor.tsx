@@ -45,7 +45,7 @@ export function Floor4({ week, notes }: { week: SleepNight[]; notes: JournalNote
         {single && <p className="mt-2">Caffeine: {log.caffeineServings} servings; last cutoff {log.caffeineCutoff}. Alcohol: {log.alcohol ? `${log.alcoholDrinks} drinks, ${log.alcoholCutoff}` : "None reported"}. Screen exposure: {log.screenMinutes} min; bedtime anxiety: {log.anxiety}/10.</p>}
       </ReportSection>
       <ReportSection title="C. DAYTIME FUNCTIONING & SLEEP AID HISTORY">
-        {single ? <p>Naps: {log.naps ? `${log.napCount === 3 ? "3+" : log.napCount}, ${log.napMinutes} mins total; ${log.napTiming}` : "None reported"}. Medications / supplements: {log.medications.length ? log.medications.join(", ") + ` (${log.medicationTiming})` : "None selected"}. Morning functioning not included in this report.</p> : <p>{r.nights === 7 ? "Sample: daytime fatigue noted on 4 of 7 days; sleep aids reported on 3 nights." : r.nights === 14 ? "Sample: daytime fatigue noted on 8 of 14 days; sleep aids reported on 7 nights." : "Sample: daytime fatigue noted on 13 of 30 days; sleep aids on 16 of 30 nights, naps on 8 days averaging 35 mins."}</p>}
+        {single ? <p>Naps: {log.naps ? `${log.napCount === 3 ? "3+" : log.napCount}, ${log.napMinutes} mins total; ${log.napTiming}` : "None reported"}. Medications / supplements: {log.medications.length ? log.medications.join(", ") + ` (${log.medicationTiming})` : "None selected"}. Morning functioning not included in this report.</p> : <p>{r.nights === 7 ? `Sample: daytime fatigue noted on 4 of 7 days. Journal: magnesium or melatonin logged on ${diet?.supplementNights ?? 0} of 7 nights.` : r.nights === 14 ? "Sample: daytime fatigue noted on 8 of 14 days; sleep aids reported on 7 nights." : "Sample: daytime fatigue noted on 13 of 30 days; sleep aids on 16 of 30 nights, naps on 8 days averaging 35 mins."}</p>}
       </ReportSection>
       <ReportSection title="D. APNEA RISK SCREENING NOTE">
         <p>{log.apneaFlag ? "Current checklist: loud snoring, waking up gasping, or morning dry mouth reported. Physician may consider validated sleep apnea screening based on clinical assessment." : "Current checklist: no snoring, gasping, or dry-mouth flag selected. This does not exclude sleep apnea."}</p>
@@ -55,12 +55,19 @@ export function Floor4({ week, notes }: { week: SleepNight[]; notes: JournalNote
           <p><b>Last night’s meal:</b> {diet?.mealItems.join("; ") || "No dinner recorded in recent saved notes"}</p>
           <p><b>Evening / midnight:</b> {diet?.eveningItems.join("; ") || "No evening snack recorded in recent saved notes"}</p>
           <p><b>Last meal time:</b> {diet?.mealTime ?? "Not recorded"}</p>
+        </> : range === "Past 7 Days" ? <>
+          <p><b>Average dinner time:</b> {diet?.dinnerClock ?? "Not recorded"} — Approx 3 hours before sample bedtime.</p>
+          <p className="text-xs opacity-70">Based on {diet?.dinnerTimeCount ?? 0} recorded dinner times; unspecified times are excluded.</p>
+          <p><b>Late-night snacking:</b> Reported on {diet?.snackNights ?? 0} of 7 nights{diet?.snackDays.length ? ` (${diet.snackDays.join(", ")})` : ""}.</p>
+          <p><b>Late caffeine / evening alcohol:</b> Flagged on {diet?.flaggedNights ?? 0} of 7 nights{diet?.flaggedDays.length ? ` (${diet.flaggedDays.join(", ")})` : ""}.</p>
+          <p><b>Consistent supplements:</b> Magnesium or Melatonin logged on {diet?.supplementNights ?? 0} of 7 nights.</p>
+          <p className="text-xs opacity-70">Journal coverage: {diet?.recordedNights ?? 0} of 7 days. Late caffeine: 3 PM or later; evening alcohol: 6 PM or later. Herbal tea excluded from snack and supplement counts.</p>
         </> : <>
           <p><b>Average last meal time:</b> {r.nights === 7 ? "7:45 PM — Approx 3.0 hrs before sleep" : r.nights === 14 ? "8:00 PM — Approx 2.5 hrs before sleep" : "7:30 PM — Approx 3.2 hrs before sleep"}</p>
           <p><b>Evening / midnight snacking:</b> Reported on {r.nights === 7 ? "2 of 7" : r.nights === 14 ? "5 of 14" : r.nights === 30 ? "9 of 30" : "27 of 90"} nights (sample).</p>
         </>}
         <p className="mt-2"><b>Trigger ingestion — saved notes:</b> {diet?.triggers.length ? diet.triggers.join("; ") : "No late caffeine, carbohydrate-rich foods, or alcohol identified in saved notes for this period."}</p>
-        {!single && <p className="text-xs opacity-70 mt-2">Saved journal entries are shown separately from sample dietary averages.</p>}
+        {!single && <p className="text-xs opacity-70 mt-2">{range === "Past 7 Days" ? "Dietary totals calculated from shared journal history, including labeled sample entries." : "Saved journal entries are shown separately from sample dietary averages."}</p>}
         <p className="mt-3 border-l-2 border-paper-foreground/40 pl-3"><b>Clinical note for physician:</b> Patient-reported food diary indicates late-night snacks may correlate with middle-of-night awakenings.</p>
         <p className="text-xs opacity-70 mt-2">Association to review, not a confirmed patient-specific finding.</p>
       </ReportSection>

@@ -4,7 +4,7 @@ export type JournalNote = { id: string; at: Date; text: string; sections: Journa
 export const FALLBACK_NOTE =
   "Skipped breakfast. Had a grilled chicken bowl and iced tea at 1:30 PM, pasta for dinner around 7 PM, and a cup of chamomile tea with melatonin at 10 PM.";
 
-const CAFFEINE = /(double espresso|espresso|iced green tea|green tea|black tea|iced tea|coffee|latte|cappuccino|macchiato|matcha|energy drink|soda|cola)/i;
+const CAFFEINE = /\b(cold brew|drip coffee|iced matcha|double espresso|espresso|iced green tea|green tea|black tea|iced tea|coffee|latte|cappuccino|macchiato|matcha|energy drink|soda|cola)\b/i;
 const ALCOHOL = /(glass of wine|wine|beer|whiskey|whisky|vodka|alcohol|cocktail|margarita)/i;
 const AID = /(melatonin|magnesium|chamomile(?: tea)?|zolpidem|ambien|trazodone|benadryl|valerian)/gi;
 const FOOD = /(bowl|pasta|pizza|salad|rice|steak|chicken|burger|soup|salmon|sandwich|chocolate|cheese|curry|eggs|toast|oatmeal|yogurt|fruit|snack)/i;
@@ -21,6 +21,7 @@ const cap = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
 const cleanItem = (sentence: string) =>
   sentence
+    .replace(/^(?:lunch|dinner|breakfast|midnight snack|late snack|evening)\s*:\s*/i, "")
     .replace(/^(and|then|also)\s+/i, "")
     .replace(/^(had|ate|eaten|took|drank|finished|made)\s+/i, "")
     .replace(/^(a|an|some|the|cup of|glass of|a cup of|a glass of)\s+/i, "")
@@ -29,14 +30,14 @@ const cleanItem = (sentence: string) =>
 
 function timeLabel(sentence: string): string | null {
   const m = sentence.match(TIME);
-  if (!m) return null;
-  return `${m[1]}${m[2] ? `:${m[2]}` : ""} ${m[3]!.toUpperCase()}`;
+  if (!m?.[3]) return null;
+  return `${m[1]}${m[2] ? `:${m[2]}` : ""} ${m[3].toUpperCase()}`;
 }
 
 function eveningHour(sentence: string): boolean {
   const m = sentence.match(TIME);
-  if (!m) return false;
-  const hour = Number(m[1]) % 12 + (m[3]!.toLowerCase() === "pm" ? 12 : 0);
+  if (!m?.[3]) return false;
+  const hour = Number(m[1]) % 12 + (m[3].toLowerCase() === "pm" ? 12 : 0);
   return hour >= 21 || hour < 4;
 }
 
@@ -63,8 +64,8 @@ export function parseJournalNote(text: string): JournalSection[] {
         continue; // e.g. "Skipped breakfast." — omit the meal entirely
       }
 
-      if (caf) triggers.push(`Caffeine: ${cap(caf[1]!)}${at ? ` @ ${at}` : ""}`);
-      if (alc) triggers.push(`Alcohol: ${cap(alc[1]!)}${at ? ` @ ${at}` : ""}`);
+      if (caf?.[1]) triggers.push(`Caffeine: ${cap(caf[1])}${at ? ` @ ${at}` : ""}`);
+      if (alc?.[1]) triggers.push(`Alcohol: ${cap(alc[1])}${at ? ` @ ${at}` : ""}`);
       for (const a of aids) triggers.push(`Sleep Aid: ${a}${at ? ` @ ${at}` : ""}`);
 
       const triggerOnly = (caf || alc || aids.length) && !meal && !FOOD.test(clause);
@@ -117,31 +118,23 @@ export function noteStamp(at: Date, now: Date): string {
   return `${label} • ${timeFmt(at)}`;
 }
 
-/** Two realistic sample notes so the history feed is visible immediately. */
+/** Seven rolling local-calendar days, with the supplied weekday meal patterns. */
 export function sampleNotes(now: Date): JournalNote[] {
-  const today = new Date(now);
-  today.setHours(13, 45, 0, 0);
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  yesterday.setHours(21, 20, 0, 0);
-  return [
-    {
-      id: "sample-lunch",
-      at: today,
-      text: "Lunch was a quinoa chicken bowl with an iced green tea at 1:30 PM.",
-      sections: [
-        { icon: "☀️", title: "Lunch", items: ["Quinoa chicken bowl"] },
-        { icon: "⚡", title: "Triggers / Sleep Aids", items: ["Caffeine: Iced Green Tea @ 1:30 PM"] },
-      ],
-    },
-    {
-      id: "sample-dinner",
-      at: yesterday,
-      text: "Grilled salmon & vegetables for dinner. Chamomile tea and 3mg melatonin in the evening.",
-      sections: [
-        { icon: "🌙", title: "Dinner", items: ["Grilled salmon & vegetables"] },
-        { icon: "🦉", title: "Midnight Snack / Evening", items: ["Chamomile tea & 3mg Melatonin"] },
-      ],
-    },
+  const patterns = [
+    { hour: 13, minute: 15, text: "Lunch: Quinoa grain bowl. Caffeine: Iced green tea at 2:00 PM. Dinner: Salmon & roasted broccoli at 7:00 PM. Sleep Aid: Melatonin 3mg at 9:45 PM." },
+    { hour: 21, minute: 30, text: "Lunch: Chicken salad at 12:30 PM. Caffeine: Drip coffee at 2:00 PM. Dinner: Salmon & rice at 7:00 PM. Evening: Herbal tea at 9:30 PM." },
+    { hour: 23, minute: 15, text: "Lunch: Turkey sandwich at 1:00 PM. Trigger: Late energy drink at 3:30 PM. Dinner: Pizza slice at 8:30 PM. Late snack: Chips at 11:00 PM." },
+    { hour: 22, minute: 15, text: "Lunch: Lentil soup & bread at 1:15 PM. Dinner: Tofu vegetable stir-fry at 6:45 PM. Evening: Chamomile tea at 10:00 PM." },
+    { hour: 22, minute: 0, text: "Lunch: Burrito bowl at 1:30 PM. Caffeine: Iced matcha at 2:15 PM. Dinner: Pasta marinara at 7:15 PM. Supplement: Magnesium glycinate at 9:45 PM." },
+    { hour: 23, minute: 30, text: "Lunch: Caesar salad at 12:45 PM. Dinner: Sushi at 8:00 PM. Evening Trigger: 1 glass of wine at 9:30 PM. Midnight snack: Pretzels at 11:15 PM." },
+    { hour: 19, minute: 30, text: "Dinner: Grilled chicken & sweet potato. Caffeine: Cold brew at 1:00 PM. Evening: Chamomile tea at 10:15 PM." },
   ];
+  return Array.from({ length: 7 }, (_, offset) => {
+    const at = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
+    const pattern = patterns[at.getDay()];
+    if (!pattern) throw new Error("Missing weekday journal pattern");
+    at.setHours(pattern.hour, pattern.minute, 0, 0);
+    const sections = parseJournalNote(pattern.text).map(section => ({ ...section, items: section.items.map(item => item.replace("Sleep Aid: Melatonin @", "Sleep Aid: Melatonin 3mg @").replace("Sleep Aid: Magnesium @", "Supplement: Magnesium glycinate @")) }));
+    return { id: `sample-diet-${at.getFullYear()}-${at.getMonth()}-${at.getDate()}`, at, text: pattern.text, sections };
+  });
 }

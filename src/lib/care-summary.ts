@@ -20,12 +20,25 @@ export function reportProfile(range: ReportRange, today: SleepNight): Profile {
 export function dietarySummary(notes: JournalNote[], now: Date, nights: number, asleep: string) {
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   start.setDate(start.getDate() - (nights === 1 ? 1 : nights - 1));
-  const relevant = notes.filter(n => n.at >= start && n.at <= now).sort((a, b) => b.at.getTime() - a.at.getTime());
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const relevant = notes.filter(n => n.at >= start && (n.id.startsWith("sample-diet-") ? n.at < end : n.at <= now)).sort((a, b) => b.at.getTime() - a.at.getTime());
   const dinner = relevant.find(n => n.sections.some(s => s.title === "Dinner"));
   const evening = relevant.find(n => n.sections.some(s => s.title === "Midnight Snack / Evening"));
   const mealItems = dinner?.sections.find(s => s.title === "Dinner")?.items ?? [];
   const eveningItems = evening?.sections.find(s => s.title === "Midnight Snack / Evening")?.items ?? [];
-  const snackDates = new Set(relevant.filter(n => n.sections.some(s => s.title === "Midnight Snack / Evening")).map(n => `${n.at.getFullYear()}-${n.at.getMonth()}-${n.at.getDate()}`));
+  const dayKey = (n: JournalNote) => `${n.at.getFullYear()}-${n.at.getMonth()}-${n.at.getDate()}`;
+  const snackNotes = relevant.filter(n => n.sections.some(s => s.title === "Midnight Snack / Evening" && s.items.some(i => /snack|pretzels|chips|chocolate|cookies|popcorn|pizza|sandwich/i.test(i))));
+  const snackDates = new Set(snackNotes.map(dayKey));
+  const supplementNotes = relevant.filter(n => n.sections.some(s => s.items.some(i => /melatonin|magnesium/i.test(i))));
+  const supplementDates = new Set(supplementNotes.map(dayKey));
+  const flaggedNotes = relevant.filter(n => n.sections.some(s => s.items.some(i => {
+    const m = i.match(/@\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
+    if (!m?.[3]) return false;
+    const minutes = (Number(m[1]) % 12) * 60 + Number(m[2] ?? 0) + (m[3].toUpperCase() === "PM" ? 720 : 0);
+    return (/^Caffeine:/i.test(i) && minutes >= 900) || (/^Alcohol:/i.test(i) && minutes >= 1080);
+  })));
+  const flaggedDates = new Set(flaggedNotes.map(dayKey));
+  const weekdayNames = (entries: JournalNote[]) => [...new Map(entries.sort((a, b) => a.at.getTime() - b.at.getTime()).map(n => [dayKey(n), n.at.toLocaleDateString("en-US", { weekday: "long" })])).values()];
   const mealTimes = relevant.flatMap(n => n.text.split(/[.!?]|,/).filter(c => /dinner|supper/i.test(c)).flatMap(c => {
     const m = c.match(/(?:at|around)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
     if (!m?.[3]) return [];
@@ -41,10 +54,11 @@ export function dietarySummary(notes: JournalNote[], now: Date, nights: number, 
       if (/^Caffeine:/i.test(item)) {
         if (/^Caffeine: Cola\b/i.test(item) && !/\bcola\b/i.test(n.text)) continue;
         const m = item.match(/@\s*(\d{1,2})(?::\d{2})?\s*PM/i);
-        if (m && Number(m[1]) >= 2 && Number(m[1]) !== 12) triggers.add(`Late ${item.toLowerCase()}`);
+        if (m && Number(m[1]) >= 3 && Number(m[1]) !== 12) triggers.add(`Late ${item.toLowerCase()}`);
       }
     }
     if (/pasta|pizza|rice|heavy carbs|bread/i.test(n.text)) triggers.add("Carbohydrate-rich foods mentioned; portion size and bedtime proximity unconfirmed");
   }
-  return { mealItems, eveningItems, mealTime, snackNights: snackDates.size, triggers: [...triggers] };
+  const dinnerClock = avg === null ? "Not recorded" : `${Math.floor(avg / 60) % 12 || 12}:${String(avg % 60).padStart(2, "0")} ${avg >= 720 ? "PM" : "AM"}`;
+  return { mealItems, eveningItems, mealTime, dinnerClock, dinnerTimeCount: mealTimes.length, snackNights: snackDates.size, snackDays: weekdayNames(snackNotes), flaggedNights: flaggedDates.size, flaggedDays: weekdayNames(flaggedNotes), supplementNights: supplementDates.size, recordedNights: new Set(relevant.map(dayKey)).size, triggers: [...triggers] };
 }

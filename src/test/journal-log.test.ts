@@ -15,7 +15,7 @@ describe("parseJournalNote", () => {
     const sections = parseJournalNote("Had a latte at 9 AM.");
     const titles = sections.map((s) => s.title);
     expect(titles).toEqual(["Triggers / Sleep Aids"]);
-    expect(sections[0]!.items[0]).toContain("Caffeine: Latte @ 9 AM");
+    expect(sections[0]?.items[0]).toContain("Caffeine: Latte @ 9 AM");
   });
 
   it("routes late-night items to Midnight Snack / Evening", () => {
@@ -25,9 +25,9 @@ describe("parseJournalNote", () => {
 
   it("extracts alcohol and sleep aids as triggers", () => {
     const sections = parseJournalNote("Glass of wine with dinner, then 3mg melatonin before bed.");
-    const triggers = sections.find((s) => s.title === "Triggers / Sleep Aids")!;
-    expect(triggers.items.some((i) => i.startsWith("Alcohol:"))).toBe(true);
-    expect(triggers.items.some((i) => i.startsWith("Sleep Aid:"))).toBe(true);
+    const triggers = sections.find((s) => s.title === "Triggers / Sleep Aids");
+    expect(triggers?.items.some((i) => i.startsWith("Alcohol:"))).toBe(true);
+    expect(triggers?.items.some((i) => i.startsWith("Sleep Aid:"))).toBe(true);
     expect(sections.map((s) => s.title)).toContain("Dinner");
   });
 
@@ -55,10 +55,17 @@ describe("noteStamp", () => {
 });
 
 describe("sampleNotes", () => {
-  it("provides two pre-populated notes with sections", () => {
-    const notes = sampleNotes(new Date());
-    expect(notes).toHaveLength(2);
-    expect(notes[0]!.sections.map((s) => s.title)).toEqual(["Lunch", "Triggers / Sleep Aids"]);
-    expect(notes[1]!.sections.map((s) => s.title)).toEqual(["Dinner", "Midnight Snack / Evening"]);
+  it("provides seven dated notes newest first from Sunday through Monday", () => {
+    const notes = sampleNotes(new Date(2026, 9, 25, 23));
+    expect(notes).toHaveLength(7);
+    expect(notes.map(n => n.at.getDay())).toEqual([0, 6, 5, 4, 3, 2, 1]);
+    expect(notes[0]?.text).toContain("Quinoa grain bowl");
+    expect(notes[1]?.at.getHours()).toBe(19);
+    expect(notes[1]?.at.getMinutes()).toBe(30);
+    expect(notes[6]?.text).toContain("Drip coffee");
+  });
+  it("preserves rolling local dates across a year boundary", () => {
+    const notes = sampleNotes(new Date(2027, 0, 2));
+    expect(notes.map(n => n.at.getDate())).toEqual([2, 1, 31, 30, 29, 28, 27]);
   });
 });
