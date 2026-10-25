@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Floor2 } from "@/components/lifestyle-floor";
+import { Floor4 } from "@/components/care-summary-floor";
 import { INITIAL_LIFESTYLE, LifestyleContext, addCustomMedication, type LifestyleLog } from "@/lib/lifestyle-log";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { INITIAL_WEEK, averageSleep, nightMetrics, type SleepNight } from "@/lib/sleep-log";
@@ -36,6 +37,8 @@ function Somna() {
   const [floor, setFloor] = useState(0); // 0 = lobby
   const [week, setWeek] = useState<SleepNight[]>(INITIAL_WEEK);
   const [lifestyle, setLifestyle] = useState<LifestyleLog>(INITIAL_LIFESTYLE);
+  const [history, setHistory] = useState<JournalNote[]>([]);
+  useEffect(() => { setHistory(sampleNotes(new Date())); }, []);
   const updateSunday = (patch: Partial<Omit<SleepNight, "day">>) => {
     setWeek(previous => previous.map(night => night.day === "Sunday" ? { ...night, ...patch } : night));
   };
@@ -68,8 +71,8 @@ function Somna() {
             <main key={floor} className="floor-content px-5 pt-5 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {floor === 1 && <Floor1 week={week} updateSunday={updateSunday} />}
               {floor === 2 && <Floor2 />}
-              {floor === 3 && <Floor3 />}
-              {floor === 4 && <Floor4 week={week} />}
+              {floor === 3 && <Floor3 history={history} setHistory={setHistory} />}
+              {floor === 4 && <Floor4 week={week} notes={history} />}
               {floor === 5 && <Floor5 />}
             </main>
             <Dock floor={floor} go={setFloor} />
@@ -308,17 +311,15 @@ function Floor1({ week, updateSunday }: { week: SleepNight[]; updateSunday: (pat
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function Floor3() {
+function Floor3({ history, setHistory }: { history: JournalNote[]; setHistory: React.Dispatch<React.SetStateAction<JournalNote[]>> }) {
   const [rec, setRec] = useState(false);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState("");
   const [now, setNow] = useState<Date | null>(null);
-  const [history, setHistory] = useState<JournalNote[]>([]);
   const recRef = useRef<any>(null);
 
   useEffect(() => {
     setNow(new Date());
-    setHistory(sampleNotes(new Date()));
     const t = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(t);
   }, []);
@@ -415,73 +416,6 @@ function Floor3() {
         ))}
       </div>
     </>
-  );
-}
-
-const RANGES: Record<string, { lat: number; aw: number; tst: number; eff: number; n: number }> = {
-  "Today": { lat: 48, aw: 2, tst: 6.8, eff: 81, n: 1 },
-  "Past 7 Days": { lat: 48, aw: 2.4, tst: 5.8, eff: 78, n: 7 },
-  "Bi-Weekly (14 Days)": { lat: 51, aw: 2.6, tst: 5.7, eff: 76, n: 14 },
-  "Past Month (30 Days)": { lat: 54, aw: 2.8, tst: 5.5, eff: 74, n: 30 },
-  "Past 3 Months": { lat: 58, aw: 3.1, tst: 5.3, eff: 71, n: 90 },
-};
-
-function Floor4({ week }: { week: SleepNight[] }) {
-  const [range, setRange] = useState("Past 7 Days");
-  const live = averageSleep(range === "Today" ? week.filter(night => night.day === "Sunday") : week);
-  const r = { ...(RANGES[range] ?? RANGES["Past 7 Days"]), lat: Math.round(live.latency), aw: Number(live.wakes.toFixed(1)), tst: Number(live.total.toFixed(1)), eff: Math.round(live.efficiency), n: range === "Today" ? 1 : week.length };
-  return (
-    <>
-      <div className="no-print mb-4">
-        <select value={range} onChange={(e) => setRange(e.target.value)} className={inputCls}>
-          {Object.keys(RANGES).map((k) => <option key={k}>{k}</option>)}
-        </select>
-      </div>
-      <article className="print-area rounded-xl bg-paper text-paper-foreground p-5 font-sans">
-        <div className="flex justify-between border-b-2 border-paper-foreground/80 pb-3 mb-4">
-          <div>
-            <h2 className="font-display text-lg">Sleep Clinical Intake Summary</h2>
-            <p className="text-[11px] opacity-70">Patient-reported · Somna · {range} ({r.n} night{r.n > 1 ? "s" : ""})</p>
-          </div>
-          <div className="text-right text-[11px] opacity-70">Patient: J. Doe<br />DOB: 03/14/1986</div>
-        </div>
-        <Section t="A. Sleep Chronology Averages">
-          {range !== "Today" && range !== "Past 7 Days" && <p className="text-[11px] opacity-70 mb-2">Sleep averages reflect the 7 available logged nights.</p>}
-          <ul className="grid grid-cols-2 gap-y-1">
-            <li>Sleep latency: <b>{r.lat} min</b></li>
-            <li>Awakenings: <b>{r.aw}/night</b></li>
-            <li>Total sleep: <b>{r.tst} h</b></li>
-            <li>Sleep efficiency: <b>{r.eff}%</b></li>
-          </ul>
-        </Section>
-        <Section t="B. Key Lifestyle Correlations">
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Caffeine after 2 PM → <b>+22 min</b> time to fall asleep.</li>
-            <li>Screen time &gt; 60 min → <b>+35 min</b> sleep latency.</li>
-            <li>Bedtime anxiety ≥ 7 on <b>{Math.round(r.n * 0.57)}</b> of {r.n} nights.</li>
-          </ul>
-        </Section>
-        <Section t="C. Daytime Functioning & Sleep Aid History">
-          <p>Morning energy avg 4.2/10; moderate brain fog. Morning headaches / dry mouth on {Math.round(r.n * 0.43)} nights. Melatonin 3 mg used {Math.round(r.n * 0.6)}× in period.</p>
-        </Section>
-        <Section t="D. Apnea Risk Screening Note">
-          <p className="border-l-4 border-primary pl-3">Patient reports loud snoring / waking up gasping with morning headaches and dry mouth. <b>Consider STOP-BANG screening and polysomnography referral.</b></p>
-        </Section>
-        <p className="text-[10px] opacity-60 mt-3">Self-reported data. Not a diagnosis.</p>
-      </article>
-      <button onClick={() => window.print()} className="no-print w-full mt-5 py-4 rounded-xl bg-primary text-primary-foreground font-bold glow">
-        Export PDF / Print for Physician
-      </button>
-    </>
-  );
-}
-
-function Section({ t, children }: { t: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-4 text-sm">
-      <h3 className="font-bold uppercase text-[11px] tracking-wider mb-1 opacity-80">{t}</h3>
-      {children}
-    </div>
   );
 }
 

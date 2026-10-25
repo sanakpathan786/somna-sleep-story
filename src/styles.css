@@ -64,8 +64,8 @@
   --border: #1e1e2d;
   --input: #27272a;
   --ring: #d4a373;
-  --paper: oklch(0.98 0.005 90);
-  --paper-foreground: oklch(0.22 0.02 270);
+  --paper: #F8F9FA;
+  --paper-foreground: #1A1A24;
   --glow: 0 0 18px color-mix(in oklab, var(--primary) 45%, transparent);
 }
 
@@ -96,8 +96,14 @@
 @utility flicker { animation: flicker 2.4s ease-in-out infinite; }
 
 @media print {
-  body { background: white !important; }
+  @page { size: A4; margin: 14mm; }
+  html, body { background: var(--paper) !important; color: var(--paper-foreground) !important; }
   .no-print { display: none !important; }
-  .print-area { box-shadow: none !important; }
-  .print-shell { max-width: none !important; border: none !important; padding: 0 !important; }
+  body:has(.care-report) #root, body:has(.care-report) .min-h-screen { min-height: 0 !important; background: var(--paper) !important; padding: 0 !important; }
+  .print-area { box-shadow: none !important; border: 0 !important; border-radius: 0 !important; padding: 0 !important; }
+  .print-shell { max-width: none !important; border: none !important; padding: 0 !important; overflow: visible !important; height: auto !important; min-height: 0 !important; border-radius: 0 !important; }
+  .floor-content:has(.care-report) { padding: 0 !important; animation: none !important; transform: none !important; overflow: visible !important; }
+  .care-report { width: 100%; }
+  .report-section { break-inside: avoid; page-break-inside: avoid; }
+  .care-report header { break-after: avoid; }
 }

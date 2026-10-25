@@ -7,3 +7,4 @@
 - [x] Test nap thresholds, medication selection, control ranges, and navigation preservation; verify Floor 2 above the dock.
 - [x] Rebuild Floor 3 as a Notes-style journal: live date header, mic with fallback note, Organize & Save parsing, persistent history feed.
 - [x] Test meal/trigger parsing, stamps, and samples; verify Floor 3 save flow and dock clearance in the browser.
+- [x] Update only Floor 4 with timeframe reports, live Today sleep and dietary notes, Section E, and paper printing; test profiles and verify navigation/export.
