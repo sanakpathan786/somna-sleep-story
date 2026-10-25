@@ -394,11 +394,12 @@ function Floor3({ history, setHistory }: { history: JournalNote[]; setHistory: R
         </button>
       </Card>
 
-      <h2 className="text-xs uppercase tracking-[0.2em] text-lavender mt-6 mb-3">Notes history</h2>
+      <h2 className="text-xs uppercase tracking-[0.2em] text-lavender mt-6 mb-3">Recent Habit History</h2>
       <div className="space-y-4">
         {history.map((entry) => (
-          <article key={entry.id} className="rounded-2xl bg-card border p-5">
-            <p className="text-xs text-muted-foreground mb-2">{now ? noteStamp(entry.at, now) : ""}</p>
+          <article key={entry.id} className="rounded-lg bg-card border p-5">
+            <p className="text-sm font-semibold text-foreground mb-1">{entry.at.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}</p>
+            <p className="text-xs text-muted-foreground mb-3">{now ? noteStamp(entry.at, now) : ""}{entry.id.startsWith("sample-diet-") ? " · Sample" : ""}</p>
             <p className="text-sm leading-relaxed text-foreground/90 line-clamp-2 mb-3">{entry.text}</p>
             {entry.sections.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -406,7 +407,7 @@ function Floor3({ history, setHistory }: { history: JournalNote[]; setHistory: R
                   s.items.map((item, i) => (
                     <span key={`${s.title}-${i}`}
                       className={`rounded-full px-3 py-1 text-xs border ${s.title.startsWith("Triggers") ? "border-primary/60 text-primary" : "border-lavender/40 text-lavender"}`}>
-                      {s.icon} <b>{s.title}:</b> {item}
+                      {s.icon} <b>{s.title === "Midnight Snack / Evening" ? "Midnight Snack / Evening" : s.title.startsWith("Triggers") ? "Triggers/Aids" : s.title}:</b> {item}
                     </span>
                   )),
                 )}
