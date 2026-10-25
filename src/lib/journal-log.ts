@@ -48,35 +48,40 @@ export function parseJournalNote(text: string): JournalSection[] {
     .filter(Boolean);
   const meals = new Map<string, string[]>();
   const triggers: string[] = [];
+  let lastTarget: string | null = null;
 
   for (const sentence of sentences) {
-    const skipped = /\b(skipped|skip|didn't (eat|have)|no)\b/i.test(sentence);
-    const caf = sentence.match(CAFFEINE);
-    const alc = sentence.match(ALCOHOL);
-    const aid = sentence.match(AID);
-    const meal = MEAL_ORDER.find((m) => m.match.test(sentence));
-    const at = timeLabel(sentence);
+    for (const clause of sentence.split(/\s*,\s*/)) {
+      const skipped = /\b(skipped|skip|didn't (eat|have)|no)\b/i.test(clause);
+      const caf = clause.match(CAFFEINE);
+      const alc = clause.match(ALCOHOL);
+      const aids = [...new Set((clause.match(AID) ?? []).map((a) => cap(a)))];
+      const meal = MEAL_ORDER.find((m) => m.match.test(clause));
+      const at = timeLabel(clause);
 
-    if (skipped && !caf && !alc && !aid) {
-      continue; // e.g. "Skipped breakfast." — omit the meal entirely
-    }
+      if (skipped && !caf && !alc && !aids.length) {
+        continue; // e.g. "Skipped breakfast." — omit the meal entirely
+      }
 
-    if (caf) triggers.push(`Caffeine: ${cap(caf[1]!)}${at ? ` @ ${at}` : ""}`);
-    if (alc) triggers.push(`Alcohol: ${cap(alc[1]!)}${at ? ` @ ${at}` : ""}`);
-    if (aid) triggers.push(`Sleep Aid: ${cap(aid[1]!)}${at ? ` @ ${at}` : ""}`);
+      if (caf) triggers.push(`Caffeine: ${cap(caf[1]!)}${at ? ` @ ${at}` : ""}`);
+      if (alc) triggers.push(`Alcohol: ${cap(alc[1]!)}${at ? ` @ ${at}` : ""}`);
+      for (const a of aids) triggers.push(`Sleep Aid: ${a}${at ? ` @ ${at}` : ""}`);
 
-    const triggerOnly = (caf || alc || aid) && !meal && !/(bowl|pasta|pizza|salad|rice|steak|chicken|burger|soup|salmon|sandwich|chocolate|cheese|curry|dinner|lunch|breakfast)/i.test(sentence);
-    if (triggerOnly) continue;
+      const triggerOnly = (caf || alc || aids.length) && !meal && !FOOD.test(clause);
+      if (triggerOnly) continue;
 
-    let target = meal?.title ?? null;
-    if (!target && at) {
-      target = eveningHour(sentence) ? "Midnight Snack / Evening" : "Lunch";
-    }
-    if (!target && /evening|night/i.test(sentence)) target = "Midnight Snack / Evening";
-    if (target) {
-      const list = meals.get(target) ?? [];
-      list.push(cleanItem(sentence));
-      meals.set(target, list);
+      let target = meal?.title ?? null;
+      if (!target && at) {
+        target = eveningHour(clause) ? "Midnight Snack / Evening" : "Lunch";
+      }
+      if (!target && /evening|night/i.test(clause)) target = "Midnight Snack / Evening";
+      if (!target) target = lastTarget;
+      if (target) {
+        const list = meals.get(target) ?? [];
+        list.push(cleanItem(clause));
+        meals.set(target, list);
+        lastTarget = target;
+      }
     }
   }
 
