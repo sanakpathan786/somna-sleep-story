@@ -27,6 +27,7 @@ describe("Care Summary timeframe rules", () => {
     expect(result.mealTime).toBe("7:00 PM — Approx 4.0 hrs before sleep");
     expect(result.snackNights).toBe(1);
     expect(result.triggers).toContain("Late caffeine: coffee @ 9 pm");
+    expect(result.triggers).not.toContain("Late caffeine: cola @ 10 pm");
   });
   it("omits older or future notes from today's report", () => {
     const now = new Date(2026, 9, 25, 12);

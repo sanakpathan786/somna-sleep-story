@@ -39,6 +39,7 @@ export function dietarySummary(notes: JournalNote[], now: Date, nights: number, 
     for (const section of n.sections) for (const item of section.items) {
       if (/^Alcohol:/i.test(item)) triggers.add(item + " (bedtime proximity not established)");
       if (/^Caffeine:/i.test(item)) {
+        if (/^Caffeine: Cola\b/i.test(item) && !/\bcola\b/i.test(n.text)) continue;
         const m = item.match(/@\s*(\d{1,2})(?::\d{2})?\s*PM/i);
         if (m && Number(m[1]) >= 2 && Number(m[1]) !== 12) triggers.add(`Late ${item.toLowerCase()}`);
       }
