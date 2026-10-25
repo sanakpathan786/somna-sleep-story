@@ -5,3 +5,5 @@
 - [x] Replace Floor 1 fixed dates with local rolling Week/Day navigation and test date boundaries and live synchronization.
 - [x] Update only Floor 2 with clinical lifestyle controls and shared values available for Care Summary.
 - [x] Test nap thresholds, medication selection, control ranges, and navigation preservation; verify Floor 2 above the dock.
+- [x] Rebuild Floor 3 as a Notes-style journal: live date header, mic with fallback note, Organize & Save parsing, persistent history feed.
+- [x] Test meal/trigger parsing, stamps, and samples; verify Floor 3 save flow and dock clearance in the browser.
