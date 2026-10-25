@@ -306,34 +306,21 @@ function Floor1({ week, updateSunday }: { week: SleepNight[]; updateSunday: (pat
   );
 }
 
-const FALLBACK_NOTE = "Had a double espresso at 1:30 PM, grilled chicken salad at 7 PM, and took 3mg melatonin at 10 PM";
-
-const cap = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
-
-function extractTags(text: string) {
-  const tags: { k: string; v: string }[] = [];
-  const t = text.toLowerCase();
-  const caf = t.match(/(espresso|coffee|latte|cappuccino|tea|energy drink|soda|cola)/);
-  if (caf) {
-    const time = text.slice(caf.index).match(/at (\d{1,2}(:\d{2})?\s?(am|pm))/i);
-    tags.push({ k: "Caffeine", v: cap(caf[1]!) + (time ? ` @ ${time[1]!.toUpperCase()}` : "") });
-  }
-  const dishes = ["chicken salad", "pasta", "pizza", "salad", "rice", "steak", "chocolate", "cheese", "curry", "chicken", "burger", "soup"];
-  const foods: string[] = [];
-  for (const d of dishes) if (t.includes(d) && !foods.some((f) => f.includes(d))) foods.push(d);
-  if (foods.length) tags.push({ k: "Food", v: foods.map(cap).join(", ") });
-  const aid = t.match(/(melatonin|zolpidem|ambien|trazodone|benadryl|magnesium)/);
-  if (aid) tags.push({ k: "Sleep Aid", v: cap(aid[1]!) });
-  if (/wine|beer|whiskey|alcohol|cocktail/.test(t)) tags.push({ k: "Alcohol", v: "Detected" });
-  return tags;
-}
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function Floor3() {
   const [rec, setRec] = useState(false);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState("");
+  const [now, setNow] = useState<Date | null>(null);
+  const [history, setHistory] = useState<JournalNote[]>([]);
   const recRef = useRef<any>(null);
+
+  useEffect(() => {
+    setNow(new Date());
+    setHistory(sampleNotes(new Date()));
+    const t = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   const simulate = (why: string) => {
     setRec(false);
@@ -364,39 +351,68 @@ function Floor3() {
   };
 
   useEffect(() => () => recRef.current?.stop(), []);
-  const tags = extractTags(note);
+
+  const save = () => {
+    const text = note.trim();
+    if (!text) return;
+    const at = new Date();
+    setHistory((prev) => [{ id: `note-${at.getTime()}`, at, text, sections: parseJournalNote(text) }, ...prev]);
+    setNote("");
+    setStatus("Note organized & saved below.");
+  };
 
   return (
     <>
       <Card>
-        <div className="flex flex-col items-center py-3">
+        <p className="text-sm text-lavender tracking-wide mb-3" suppressHydrationWarning>
+          {now ? journalHeader(now) : " "}
+        </p>
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={5}
+          placeholder="Speak or type anything you ate, drank, or took today..."
+          className="w-full rounded-xl bg-zinc-900 border border-zinc-800 p-3 text-zinc-100 placeholder-zinc-500 text-sm leading-relaxed focus:outline-none focus:border-primary/60" />
+        <div className="mt-4 flex items-center gap-4 rounded-xl bg-background border px-4 py-3">
           <button onClick={toggle} aria-label="Record Daily Habit Note"
-            className={`h-24 w-24 rounded-full flex items-center justify-center transition-all ${rec ? "bg-primary text-primary-foreground glow scale-105" : "bg-background border-2 border-primary/60 text-primary"}`}>
-            <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
+            className={`h-14 w-14 shrink-0 rounded-full flex items-center justify-center transition-all ${rec ? "bg-primary text-primary-foreground glow scale-105" : "bg-primary/15 border-2 border-primary/60 text-primary hover:glow"}`}>
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
           </button>
-          <p className="mt-3 text-sm">{rec ? "Listening… tap to stop" : "Record Daily Habit Note"}</p>
-          <div className="flex items-center gap-1 h-10 mt-2">
-            {Array.from({ length: 24 }).map((_, i) => (
-              <span key={i} className={`w-1 rounded-full bg-primary ${rec ? "wave-bar" : "opacity-20"}`}
-                style={{ height: `${16 + ((i * 37) % 24)}px`, animationDelay: `${(i % 6) * 0.12}s` }} />
-            ))}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm">{rec ? "Listening… tap to stop" : "Tap the mic to speak"}</p>
+            <div className="flex items-center gap-1 h-6 mt-1">
+              {Array.from({ length: 24 }).map((_, i) => (
+                <span key={i} className={`w-1 rounded-full bg-primary ${rec ? "wave-bar" : "opacity-20"}`}
+                  style={{ height: `${8 + ((i * 37) % 14)}px`, animationDelay: `${(i % 6) * 0.12}s` }} />
+              ))}
+            </div>
           </div>
-          {status && <p className="text-xs text-muted-foreground mt-2 text-center">{status}</p>}
         </div>
+        {status && <p className="text-xs text-muted-foreground mt-2">{status}</p>}
+        <button onClick={save} disabled={!note.trim()}
+          className="mt-4 w-full rounded-xl bg-primary py-3.5 font-medium text-primary-foreground glow transition-opacity disabled:opacity-40 disabled:shadow-none">
+          Organize &amp; Save Note
+        </button>
       </Card>
-      <Card title="Journal entry">
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={4}
-          placeholder="Type or speak what you ate, drank or took today…" className={inputCls + " text-sm leading-relaxed"} />
-        <p className="text-xs text-muted-foreground mt-4 mb-2">Smart tags</p>
-        <div className="flex flex-wrap gap-2">
-          {tags.map((t) => (
-            <span key={t.k} className={`rounded-full px-3 py-1 text-xs border ${t.k === "Sleep Aid" ? "border-primary/60 text-primary" : "border-lavender/40 text-lavender"}`}>
-              <b>{t.k}:</b> {t.v}
-            </span>
-          ))}
-          {!tags.length && <span className="text-xs text-muted-foreground">No items detected yet.</span>}
-        </div>
-      </Card>
+
+      <h2 className="text-xs uppercase tracking-[0.2em] text-lavender mt-6 mb-3">Notes history</h2>
+      <div className="space-y-4">
+        {history.map((entry) => (
+          <article key={entry.id} className="rounded-2xl bg-card border p-5">
+            <p className="text-xs text-muted-foreground mb-2">{now ? noteStamp(entry.at, now) : ""}</p>
+            <p className="text-sm leading-relaxed text-foreground/90 line-clamp-2 mb-3">{entry.text}</p>
+            {entry.sections.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {entry.sections.flatMap((s) =>
+                  s.items.map((item, i) => (
+                    <span key={`${s.title}-${i}`}
+                      className={`rounded-full px-3 py-1 text-xs border ${s.title.startsWith("Triggers") ? "border-primary/60 text-primary" : "border-lavender/40 text-lavender"}`}>
+                      {s.icon} <b>{s.title}:</b> {item}
+                    </span>
+                  )),
+                )}
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
     </>
   );
 }
